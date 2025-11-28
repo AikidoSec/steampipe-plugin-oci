@@ -1,3 +1,9 @@
+## v1.2.1 [2025-11-28]
+
+_Bug fixes_
+
+- Fixed the `oci_identity_domain` and `oci_identity_dynamic_group` tables to query domains and dynamic groups across all compartments while avoiding duplicate results. ([#674](https://github.com/turbot/steampipe-plugin-oci/pull/674))
+
 ## v1.2.0 [2025-10-13]
 
 _Dependencies_
