@@ -1,8 +1,6 @@
 module github.com/turbot/steampipe-plugin-oci
 
-go 1.24
-
-toolchain go1.24.1
+go 1.26.2
 
 require (
 	github.com/hashicorp/go-hclog v1.6.3
