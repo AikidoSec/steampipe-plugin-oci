@@ -2,6 +2,7 @@ package oci
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/oracle/oci-go-sdk/v65/certificatesmanagement"
@@ -110,7 +111,7 @@ func tableCertificatesManagementCertificateVersion(_ context.Context) *plugin.Ta
 				Name:        "akas",
 				Description: ColumnDescriptionAkas,
 				Type:        proto.ColumnType_JSON,
-				Transform:   transform.FromField("CertificateId").Transform(transform.EnsureStringArray),
+				Transform:   transform.FromValue().Transform(generateCertificatesManagementVersionAKA).Transform(transform.EnsureStringArray),
 			},
 			{
 				Name:        "title",
@@ -128,6 +129,14 @@ func tableCertificatesManagementCertificateVersion(_ context.Context) *plugin.Ta
 			},
 		},
 	}
+}
+
+func generateCertificatesManagementVersionAKA(ctx context.Context, d *transform.TransformData) (interface{}, error) {
+	info, ok := d.Value.(certificatesmanagement.CertificateVersionSummary)
+	if !ok {
+		return nil, fmt.Errorf("could not cast data")
+	}
+	return fmt.Sprintf("%s - %d", *info.CertificateId, *info.VersionNumber), nil
 }
 
 //// LIST FUNCTION
@@ -152,7 +161,7 @@ func listCertificatesManagementCertificateVersions(ctx context.Context, d *plugi
 		return nil, nil
 	}
 
-	//Build request parameters
+	// Build request parameters
 	request := buildListCertificatesManagementCertificateVersionFilters(equalQuals)
 	request.CertificateId = certManagement.Id
 	request.Limit = types.Int(20)
