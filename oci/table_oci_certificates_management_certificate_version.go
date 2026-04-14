@@ -107,6 +107,12 @@ func tableCertificatesManagementCertificateVersion(_ context.Context) *plugin.Ta
 
 			// Standard Steampipe columns
 			{
+				Name:        "akas",
+				Description: ColumnDescriptionAkas,
+				Type:        proto.ColumnType_JSON,
+				Transform:   transform.FromField("CertificateId").Transform(transform.EnsureStringArray),
+			},
+			{
 				Name:        "title",
 				Description: ColumnDescriptionTitle,
 				Type:        proto.ColumnType_STRING,

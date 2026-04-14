@@ -108,6 +108,12 @@ func tableOnsNotificationTopic(_ context.Context) *plugin.Table {
 				Transform:   transform.From(topicTags),
 			},
 			{
+				Name:        "akas",
+				Description: ColumnDescriptionAkas,
+				Type:        proto.ColumnType_JSON,
+				Transform:   transform.FromField("TopicId").Transform(transform.EnsureStringArray),
+			},
+			{
 				Name:        "title",
 				Description: ColumnDescriptionTitle,
 				Type:        proto.ColumnType_STRING,
