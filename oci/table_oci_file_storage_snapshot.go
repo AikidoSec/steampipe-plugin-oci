@@ -119,6 +119,12 @@ func tableFileStorageSnapshot(_ context.Context) *plugin.Table {
 				Transform:   transform.From(snapshotTags),
 			},
 			{
+				Name:        "akas",
+				Description: ColumnDescriptionAkas,
+				Type:        proto.ColumnType_JSON,
+				Transform:   transform.FromField("Id").Transform(transform.EnsureStringArray),
+			},
+			{
 				Name:        "title",
 				Description: ColumnDescriptionTitle,
 				Type:        proto.ColumnType_STRING,

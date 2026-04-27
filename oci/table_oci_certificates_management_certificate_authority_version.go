@@ -2,6 +2,7 @@ package oci
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/oracle/oci-go-sdk/v65/certificatesmanagement"
@@ -108,6 +109,12 @@ func tableCertificatesManagementCertificateAuthorityVersion(_ context.Context) *
 
 			// Standard Steampipe columns
 			{
+				Name:        "akas",
+				Description: ColumnDescriptionAkas,
+				Type:        proto.ColumnType_JSON,
+				Transform:   transform.FromValue().Transform(generateCertificatesManagementAuthorityVersionAKA).Transform(transform.EnsureStringArray),
+			},
+			{
 				Name:        "title",
 				Description: ColumnDescriptionTitle,
 				Type:        proto.ColumnType_STRING,
@@ -123,6 +130,14 @@ func tableCertificatesManagementCertificateAuthorityVersion(_ context.Context) *
 			},
 		},
 	}
+}
+
+func generateCertificatesManagementAuthorityVersionAKA(ctx context.Context, d *transform.TransformData) (interface{}, error) {
+	info, ok := d.Value.(certificatesmanagement.CertificateAuthorityVersionSummary)
+	if !ok {
+		return nil, fmt.Errorf("could not cast data")
+	}
+	return fmt.Sprintf("%s - %d", *info.CertificateAuthorityId, *info.VersionNumber), nil
 }
 
 //// LIST FUNCTION
@@ -145,7 +160,7 @@ func listCertificatesManagementCertificateAuthorityVersions(ctx context.Context,
 		return nil, nil
 	}
 
-	//Build request parameters
+	// Build request parameters
 	request := buildListCertificatesManagementCertificateAuthorityVersionFilters(equalQuals)
 	request.CertificateAuthorityId = ca.Id
 	request.Limit = types.Int(20)

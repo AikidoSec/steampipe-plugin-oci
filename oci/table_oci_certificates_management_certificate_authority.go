@@ -144,6 +144,12 @@ func tableCertificatesManagementCertificateAuthority(_ context.Context) *plugin.
 				Transform:   transform.From(certificatesManagementCertificateAuthorityTags),
 			},
 			{
+				Name:        "akas",
+				Description: ColumnDescriptionAkas,
+				Type:        proto.ColumnType_JSON,
+				Transform:   transform.FromField("Id").Transform(transform.EnsureStringArray),
+			},
+			{
 				Name:        "title",
 				Description: ColumnDescriptionTitle,
 				Type:        proto.ColumnType_STRING,

@@ -29,6 +29,13 @@ func tableOciDatabaseAutonomousDatabaseMetricStorageUtilizationHourly(_ context.
 					Type:        proto.ColumnType_STRING,
 					Transform:   transform.FromField("DimensionValue"),
 				},
+				{
+					Name:        "akas",
+					Description: ColumnDescriptionAkas,
+					Type:        proto.ColumnType_JSON,
+					Transform:   transform.FromField("DimensionValue").Transform(transform.EnsureStringArray),
+				},
+
 			})),
 	}
 }

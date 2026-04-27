@@ -131,6 +131,12 @@ func tableArtifactGenericArtifact(_ context.Context) *plugin.Table {
 				Transform:   transform.From(artifactGenericArtifactTags),
 			},
 			{
+				Name:        "akas",
+				Description: ColumnDescriptionAkas,
+				Type:        proto.ColumnType_JSON,
+				Transform:   transform.FromField("Id").Transform(transform.EnsureStringArray),
+			},
+			{
 				Name:        "title",
 				Description: ColumnDescriptionTitle,
 				Type:        proto.ColumnType_STRING,
