@@ -178,6 +178,7 @@ func tableObjectStorageBucket(_ context.Context) *plugin.Table {
 				Description: ColumnDescriptionAkas,
 				Type:        proto.ColumnType_JSON,
 				Transform:   transform.FromField("Id").Transform(transform.EnsureStringArray),
+				Hydrate:     getObjectStorageBucket,
 			},
 			{
 				Name:        "title",
@@ -220,7 +221,7 @@ func listObjectStorageBuckets(ctx context.Context, d *plugin.QueryData, _ *plugi
 	logger := plugin.Logger(ctx)
 	region := d.EqualsQualString(matrixKeyRegion)
 	compartment := d.EqualsQualString(matrixKeyCompartment)
-	logger.Error("listObjectStorageBuckets", "Compartment", compartment, "OCI_REGION", region)
+	logger.Debug("listObjectStorageBuckets", "Compartment", compartment, "OCI_REGION", region)
 
 	equalQuals := d.EqualsQuals
 
@@ -397,7 +398,6 @@ func bucketTags(ctx context.Context, d *transform.TransformData) (interface{}, e
 			for key, value := range v {
 				tags[key] = value
 			}
-
 		}
 	}
 

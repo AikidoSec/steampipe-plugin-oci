@@ -198,6 +198,11 @@ func listCloudGuardTargets(ctx context.Context, d *plugin.QueryData, h *plugin.H
 
 	reportingRegion := configuration.(cloudguard.Configuration).ReportingRegion
 
+	if reportingRegion == nil {
+		// Even though the reporting region should never be nil, according to the docs. It clearly can be nil (presumably when the service is not setup or the setup is incomplete)
+		return nil, nil
+	}
+
 	// Create Session
 	session, err := cloudGuardService(ctx, d, *reportingRegion)
 	if err != nil {
@@ -314,7 +319,6 @@ func getCloudGuardTarget(ctx context.Context, d *plugin.QueryData, h *plugin.Hyd
 // 2. Defined Tags
 // 3. Free-form tags
 func cloudGuardTargetTags(_ context.Context, d *transform.TransformData) (interface{}, error) {
-
 	var freeformTags map[string]string
 	var definedTags map[string]map[string]interface{}
 	var systemTags map[string]map[string]interface{}
@@ -349,7 +353,6 @@ func cloudGuardTargetTags(_ context.Context, d *transform.TransformData) (interf
 			for key, value := range v {
 				tags[key] = value
 			}
-
 		}
 	}
 
@@ -361,7 +364,6 @@ func cloudGuardTargetTags(_ context.Context, d *transform.TransformData) (interf
 			for key, value := range v {
 				tags[key] = value
 			}
-
 		}
 	}
 

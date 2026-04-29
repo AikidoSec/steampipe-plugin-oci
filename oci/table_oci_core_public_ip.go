@@ -161,7 +161,7 @@ func tableCorePublicIP(_ context.Context) *plugin.Table {
 func listCorePublicIPs(ctx context.Context, d *plugin.QueryData, _ *plugin.HydrateData) (interface{}, error) {
 	region := d.EqualsQualString(matrixKeyRegion)
 	compartment := d.EqualsQualString(matrixKeyCompartment)
-	plugin.Logger(ctx).Error("listCorePublicIPs", "Compartment", compartment, "OCI_REGION", region)
+	plugin.Logger(ctx).Debug("listCorePublicIPs", "Compartment", compartment, "OCI_REGION", region)
 
 	equalQuals := d.EqualsQuals
 
