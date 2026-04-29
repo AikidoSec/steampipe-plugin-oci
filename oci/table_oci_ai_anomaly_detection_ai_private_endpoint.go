@@ -25,6 +25,9 @@ func tableAiAnomalyDetectionAiPrivateEndpoint(_ context.Context) *plugin.Table {
 		},
 		List: &plugin.ListConfig{
 			Hydrate: listAiAnomalyDetectionAiPrivateEndpoints,
+			IgnoreConfig: &plugin.IgnoreConfig{
+				ShouldIgnoreErrorFunc: notAuthorizedOrNotFoundIgnoreErrorFunc,
+			},
 			KeyColumns: []*plugin.KeyColumn{
 				{
 					Name:    "compartment_id",
@@ -135,7 +138,7 @@ func tableAiAnomalyDetectionAiPrivateEndpoint(_ context.Context) *plugin.Table {
 
 //// LIST FUNCTION
 
-func listAiAnomalyDetectionAiPrivateEndpoints(ctx context.Context, d *plugin.QueryData, _ *plugin.HydrateData) (interface{}, error) {
+func listAiAnomalyDetectionAiPrivateEndpoints(ctx context.Context, d *plugin.QueryData, h *plugin.HydrateData) (interface{}, error) {
 	logger := plugin.Logger(ctx)
 	region := d.EqualsQualString(matrixKeyRegion)
 	compartment := d.EqualsQualString(matrixKeyCompartment)
@@ -153,7 +156,7 @@ func listAiAnomalyDetectionAiPrivateEndpoints(ctx context.Context, d *plugin.Que
 		return nil, err
 	}
 
-	//Build request parameters
+	// Build request parameters
 	request := buildAiAnomalyDetectionAiPrivateEndpointFilters(equalQuals)
 	request.CompartmentId = types.String(compartment)
 	request.Limit = types.Int(100)
@@ -172,7 +175,9 @@ func listAiAnomalyDetectionAiPrivateEndpoints(ctx context.Context, d *plugin.Que
 	for pagesLeft {
 		response, err := session.AnomalyDetectionClient.ListAiPrivateEndpoints(ctx, request)
 		if err != nil {
-			logger.Error("oci_ai_anomaly_detection_ai_private_endpoint.listAiAnomalyDetectionAiPrivateEndpoints", "api_error", err)
+			if !notAuthorizedOrNotFoundIgnoreErrorFunc(ctx, d, h, err) {
+				logger.Error("oci_ai_anomaly_detection_ai_private_endpoint.listAiAnomalyDetectionAiPrivateEndpoints", "api_error", err)
+			}
 			return nil, err
 		}
 		for _, respItem := range response.Items {
@@ -270,7 +275,6 @@ func aiAnomalyDetectionAiPrivateEndpointTags(_ context.Context, d *transform.Tra
 			for key, value := range v {
 				tags[key] = value
 			}
-
 		}
 	}
 	return tags, nil

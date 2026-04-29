@@ -24,6 +24,9 @@ func tableAnalyticsInstance(_ context.Context) *plugin.Table {
 		},
 		List: &plugin.ListConfig{
 			Hydrate: listAnalyticsInstances,
+			IgnoreConfig: &plugin.IgnoreConfig{
+				ShouldIgnoreErrorFunc: notAuthorizedOrNotFoundIgnoreErrorFunc,
+			},
 			KeyColumns: []*plugin.KeyColumn{
 				{
 					Name:    "compartment_id",
@@ -324,7 +327,6 @@ func analyticsInstanceTags(_ context.Context, d *transform.TransformData) (inter
 			for key, value := range v {
 				tags[key] = value
 			}
-
 		}
 	}
 

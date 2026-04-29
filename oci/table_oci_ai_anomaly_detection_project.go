@@ -25,6 +25,9 @@ func tableAiAnomalyDetectionProject(_ context.Context) *plugin.Table {
 		},
 		List: &plugin.ListConfig{
 			Hydrate: listAiAnomalyDetectionProjects,
+			IgnoreConfig: &plugin.IgnoreConfig{
+				ShouldIgnoreErrorFunc: notAuthorizedOrNotFoundIgnoreErrorFunc,
+			},
 			KeyColumns: []*plugin.KeyColumn{
 				{
 					Name:    "compartment_id",
@@ -119,7 +122,7 @@ func tableAiAnomalyDetectionProject(_ context.Context) *plugin.Table {
 
 //// LIST FUNCTION
 
-func listAiAnomalyDetectionProjects(ctx context.Context, d *plugin.QueryData, _ *plugin.HydrateData) (interface{}, error) {
+func listAiAnomalyDetectionProjects(ctx context.Context, d *plugin.QueryData, h *plugin.HydrateData) (interface{}, error) {
 	logger := plugin.Logger(ctx)
 	region := d.EqualsQualString(matrixKeyRegion)
 	compartment := d.EqualsQualString(matrixKeyCompartment)
@@ -137,7 +140,7 @@ func listAiAnomalyDetectionProjects(ctx context.Context, d *plugin.QueryData, _ 
 		return nil, err
 	}
 
-	//Build request parameters
+	// Build request parameters
 	request := buildAiAnomalyDetectionProjectFilters(equalQuals)
 	request.CompartmentId = types.String(compartment)
 	request.Limit = types.Int(100)
@@ -156,7 +159,9 @@ func listAiAnomalyDetectionProjects(ctx context.Context, d *plugin.QueryData, _ 
 	for pagesLeft {
 		response, err := session.AnomalyDetectionClient.ListProjects(ctx, request)
 		if err != nil {
-			logger.Error("oci_ai_anomaly_detection_project.listAiAnomalyDetectionProjects", "api_error", err)
+			if !notAuthorizedOrNotFoundIgnoreErrorFunc(ctx, d, h, err) {
+				logger.Error("oci_ai_anomaly_detection_project.listAiAnomalyDetectionProjects", "api_error", err)
+			}
 			return nil, err
 		}
 		for _, respItem := range response.Items {
@@ -253,7 +258,6 @@ func aiAnomalyDetectionProjectTags(_ context.Context, d *transform.TransformData
 			for key, value := range v {
 				tags[key] = value
 			}
-
 		}
 	}
 	return tags, nil

@@ -13,9 +13,11 @@ import (
 	"github.com/turbot/steampipe-plugin-sdk/v5/plugin"
 )
 
-const matrixKeyRegion = "region"
-const matrixKeyCompartment = "compartment"
-const matrixKeyZone = "zone"
+const (
+	matrixKeyRegion      = "region"
+	matrixKeyCompartment = "compartment"
+	matrixKeyZone        = "zone"
+)
 
 // BuildRegionList :: return a list of matrix items, one per region specified in the connection config
 func BuildRegionList(ctx context.Context, d *plugin.QueryData) []map[string]interface{} {
@@ -222,7 +224,6 @@ type zoneInfo struct {
 }
 
 func listAllzones(ctx context.Context, d *plugin.QueryData) ([]zoneInfo, error) {
-
 	zonesList := []zoneInfo{}
 
 	regions := GetConfig(d.Connection).Regions

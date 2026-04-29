@@ -30,3 +30,5 @@ func isNotFoundErrorCode(notFoundErrors []string) plugin.ErrorPredicateWithConte
 		return false
 	}
 }
+
+var notAuthorizedOrNotFoundIgnoreErrorFunc = isNotFoundErrorCode([]string{"NotAuthorizedOrNotFound"})
