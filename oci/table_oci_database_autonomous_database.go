@@ -184,6 +184,11 @@ func tableOciDatabaseAutonomousDatabase(_ context.Context) *plugin.Table {
 				Type:        proto.ColumnType_BOOL,
 			},
 			{
+				Name:        "is_backup_retention_locked",
+				Description: "Indicates if the Autonomous AI Database is backup retention locked.",
+				Type:        proto.ColumnType_BOOL,
+			},
+			{
 				Name:        "key_store_id",
 				Description: "The OCID of the key store.",
 				Type:        proto.ColumnType_STRING,
