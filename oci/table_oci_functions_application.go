@@ -78,6 +78,11 @@ func tableFunctionsApplication(_ context.Context) *plugin.Table {
 				Type:        proto.ColumnType_TIMESTAMP,
 				Transform:   transform.FromField("TimeUpdated.Time"),
 			},
+			{
+				Name:        "shape",
+				Description: "The application shape.",
+				Type:        proto.ColumnType_STRING,
+			},
 
 			//json fields
 			{
@@ -89,6 +94,31 @@ func tableFunctionsApplication(_ context.Context) *plugin.Table {
 			{
 				Name:        "subnet_ids",
 				Description: "The OCIDs of the subnets in which to run functions in the application.",
+				Type:        proto.ColumnType_JSON,
+			},
+			{
+				Name:        "image_policy_config",
+				Description: "The image signature verification policy.",
+				Type:        proto.ColumnType_JSON,
+			},
+			{
+				Name:        "logging",
+				Description: "The logging configuration.",
+				Type:        proto.ColumnType_JSON,
+			},
+			{
+				Name:        "network_security_group_ids",
+				Description: "The NSG ids for the application.",
+				Type:        proto.ColumnType_JSON,
+			},
+			{
+				Name:        "security_attributes",
+				Description: "The security attributes for the application.",
+				Type:        proto.ColumnType_JSON,
+			},
+			{
+				Name:        "trace_config",
+				Description: "The trace configuration of the application.",
 				Type:        proto.ColumnType_JSON,
 			},
 
@@ -117,14 +147,14 @@ func tableFunctionsApplication(_ context.Context) *plugin.Table {
 				Type:        proto.ColumnType_JSON,
 				Transform:   transform.FromField("Id").Transform(transform.EnsureStringArray),
 			},
-			{
-				Name:        "title",
-				Description: ColumnDescriptionTitle,
-				Type:        proto.ColumnType_STRING,
-				Transform:   transform.FromField("DisplayName"),
-			},
 
 			// Standard OCI columns
+			{
+				Name:        "title",
+				Type:        proto.ColumnType_STRING,
+				Transform:   transform.FromField("DisplayName"),
+				Description: ColumnDescriptionTitle,
+			},
 			{
 				Name:        "region",
 				Description: ColumnDescriptionRegion,
