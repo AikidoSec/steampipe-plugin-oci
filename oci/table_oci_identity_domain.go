@@ -169,29 +169,7 @@ func tableIdentityDomain(_ context.Context) *plugin.Table {
 func listDomains(ctx context.Context, d *plugin.QueryData, _ *plugin.HydrateData) (interface{}, error) {
 	equalQuals := d.EqualsQuals
 
-	// Create Session
-	session, err := identityService(ctx, d)
-	if err != nil {
-		return nil, err
-	}
-
-	// Get all compartments to query domains from each
-	compartments, err := listAllCompartments(ctx, d)
-	if err != nil {
-		return nil, err
-	}
-
-	// Track domains we've already seen to avoid duplicates
-	seenDomains := make(map[string]bool)
-
-	// Query domains from each compartment
-	for _, compartment := range compartments {
-		compartmentId := compartment.Id
-		if compartmentId == nil {
-			continue
-		}
-
-		// The OCID of the compartment containing the domain.
+	buildRequest := func(compartmentId *string) identity.ListDomainsRequest {
 		request := identity.ListDomainsRequest{
 			CompartmentId: compartmentId,
 			Limit:         types.Int(1000),
@@ -225,43 +203,75 @@ func listDomains(ctx context.Context, d *plugin.QueryData, _ *plugin.HydrateData
 			isLoginHidden := equalQuals["is_hidden_on_login"].GetBoolValue()
 			request.IsHiddenOnLogin = types.Bool(isLoginHidden)
 		}
-
 		if equalQuals["lifecycle_state"] != nil {
 			lifecycleState := d.EqualsQualString("lifecycle_state")
 			request.LifecycleState = identity.DomainLifecycleStateEnum(lifecycleState)
 		}
 
 		limit := d.QueryContext.Limit
-		if d.QueryContext.Limit != nil {
-			if *limit < int64(*request.Limit) {
-				request.Limit = types.Int(int(*limit))
-			}
+		if limit != nil && *limit < int64(*request.Limit) {
+			request.Limit = types.Int(int(*limit))
 		}
+
+		return request
+	}
+
+	return nil, fetchAllDomains(ctx, d, "listDomains", buildRequest, func(domain identity.DomainSummary) bool {
+		d.StreamListItem(ctx, domain)
+
+		// Context can be cancelled due to manual cancellation or the limit has been hit
+		return d.RowsRemaining(ctx) != 0
+	})
+}
+
+// fetchAllDomains fans ListDomains out across every compartment in the tenancy, paginating each
+// compartment's results and de-duplicating domains (by OCID) that are visible from more than one
+// compartment. This mechanic (compartment fan-out + pagination + dedup) previously had to be
+// fixed for duplicate results (see PR #674); it is centralized here so that fix only has to live
+// in one place. buildRequest constructs the per-compartment request (server-side qual filters,
+// paging limit, etc.); onDomain is invoked for each de-duplicated domain and should return false
+// to stop iterating early (e.g. once a row limit has been reached).
+func fetchAllDomains(ctx context.Context, d *plugin.QueryData, callerName string, buildRequest func(compartmentId *string) identity.ListDomainsRequest, onDomain func(identity.DomainSummary) bool) error {
+	session, err := identityService(ctx, d)
+	if err != nil {
+		return err
+	}
+
+	compartments, err := listAllCompartments(ctx, d)
+	if err != nil {
+		return err
+	}
+
+	// Track domains we've already seen to avoid duplicates
+	seenDomains := make(map[string]bool)
+
+	for _, compartment := range compartments {
+		if compartment.Id == nil {
+			continue
+		}
+
+		request := buildRequest(compartment.Id)
 
 		pagesLeft := true
 		for pagesLeft {
 			response, err := session.IdentityClient.ListDomains(ctx, request)
 			if err != nil {
 				// Log error but continue with other compartments
-				plugin.Logger(ctx).Error("listDomains", "ListDomainsError", err, "CompartmentId", *compartmentId)
+				plugin.Logger(ctx).Error(callerName, "ListDomainsError", err, "CompartmentId", *compartment.Id)
 				break
 			}
 
 			for _, domain := range response.Items {
 				// Skip if we've already seen this domain (by ID)
 				if domain.Id != nil {
-					domainId := *domain.Id
-					if seenDomains[domainId] {
+					if seenDomains[*domain.Id] {
 						continue
 					}
-					seenDomains[domainId] = true
+					seenDomains[*domain.Id] = true
 				}
 
-				d.StreamListItem(ctx, domain)
-
-				// Context can be cancelled due to manual cancellation or the limit has been hit
-				if d.RowsRemaining(ctx) == 0 {
-					return nil, nil
+				if !onDomain(domain) {
+					return nil
 				}
 			}
 			if response.OpcNextPage != nil {
@@ -272,7 +282,42 @@ func listDomains(ctx context.Context, d *plugin.QueryData, _ *plugin.HydrateData
 		}
 	}
 
-	return nil, nil
+	return nil
+}
+
+// listAllIdentityDomains returns every identity domain in the tenancy, across all compartments
+// and regardless of lifecycle state. It is used by tables (e.g. oci_identity_domain_user) that
+// need to fan out per-domain calls against the Identity Domains (SCIM) API, which is addressed
+// by domain URL rather than by region. Callers that only want usable domains should filter on
+// LifecycleState (e.g. identity.DomainLifecycleStateActive) themselves.
+func listAllIdentityDomains(ctx context.Context, d *plugin.QueryData) ([]identity.DomainSummary, error) {
+	serviceCacheKey := "listAllIdentityDomains"
+	if cachedData, ok := d.ConnectionManager.Cache.Get(serviceCacheKey); ok {
+		return cachedData.([]identity.DomainSummary), nil
+	}
+
+	buildRequest := func(compartmentId *string) identity.ListDomainsRequest {
+		return identity.ListDomainsRequest{
+			CompartmentId: compartmentId,
+			Limit:         types.Int(1000),
+			RequestMetadata: common.RequestMetadata{
+				RetryPolicy: getDefaultRetryPolicy(d.Connection),
+			},
+		}
+	}
+
+	var domains []identity.DomainSummary
+	err := fetchAllDomains(ctx, d, "listAllIdentityDomains", buildRequest, func(domain identity.DomainSummary) bool {
+		domains = append(domains, domain)
+		return true
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	d.ConnectionManager.Cache.Set(serviceCacheKey, domains)
+
+	return domains, nil
 }
 
 //// HYDRATE FUNCTIONS

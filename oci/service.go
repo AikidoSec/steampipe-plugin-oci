@@ -40,6 +40,7 @@ import (
 	"github.com/oracle/oci-go-sdk/v65/filestorage"
 	"github.com/oracle/oci-go-sdk/v65/functions"
 	"github.com/oracle/oci-go-sdk/v65/identity"
+	"github.com/oracle/oci-go-sdk/v65/identitydomains"
 	"github.com/oracle/oci-go-sdk/v65/keymanagement"
 	"github.com/oracle/oci-go-sdk/v65/loadbalancer"
 	"github.com/oracle/oci-go-sdk/v65/logging"
@@ -89,6 +90,7 @@ type session struct {
 	FileStorageClient                     filestorage.FileStorageClient
 	FunctionsManagementClient             functions.FunctionsManagementClient
 	IdentityClient                        identity.IdentityClient
+	IdentityDomainsClient                 identitydomains.IdentityDomainsClient
 	KmsManagementClient                   keymanagement.KmsManagementClient
 	KmsVaultClient                        keymanagement.KmsVaultClient
 	LoadBalancerClient                    loadbalancer.LoadBalancerClient
@@ -436,6 +438,47 @@ func identityService(ctx context.Context, d *plugin.QueryData) (*session, error)
 	sess := &session{
 		TenancyID:      tenantId,
 		IdentityClient: client,
+	}
+
+	// save session in cache
+	d.ConnectionManager.Cache.Set(serviceCacheKey, sess)
+
+	return sess, nil
+}
+
+// identityDomainsService returns the service client for the OCI Identity Domains (SCIM) API.
+// Unlike the classic Identity API, each identity domain is served from its own endpoint
+// (the domain's Url/HomeRegionUrl, e.g. from oci_identity_domain), so the client must be
+// built per domain rather than per region.
+func identityDomainsService(ctx context.Context, d *plugin.QueryData, domainUrl string) (*session, error) {
+	logger := plugin.Logger(ctx)
+
+	serviceCacheKey := fmt.Sprintf("identitydomains-%s", domainUrl)
+	if cachedData, ok := d.ConnectionManager.Cache.Get(serviceCacheKey); ok {
+		return cachedData.(*session), nil
+	}
+
+	ociConfig := GetConfig(d.Connection)
+
+	provider, err := getProvider(ctx, d.ConnectionManager, "", ociConfig)
+	if err != nil {
+		logger.Error("identityDomainsService", "getProvider.Error", err)
+		return nil, err
+	}
+
+	client, err := identitydomains.NewIdentityDomainsClientWithConfigurationProvider(provider, domainUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	tenantId, err := provider.TenancyOCID()
+	if err != nil {
+		return nil, err
+	}
+
+	sess := &session{
+		TenancyID:             tenantId,
+		IdentityDomainsClient: client,
 	}
 
 	// save session in cache

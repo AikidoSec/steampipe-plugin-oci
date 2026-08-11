@@ -11,6 +11,8 @@ Oracle Cloud Infrastructure's Identity and Access Management (IAM) service lets 
 
 The `oci_identity_user` table provides insights into users within OCI Identity and Access Management (IAM). As a security administrator, explore user-specific details through this table, including user ID, name, description, and associated metadata. Utilize it to uncover information about users, such as their state, time of creation, and compartment ID.
 
+**Note:** This table uses the classic Identity API, which only returns users belonging to the tenancy's **Default** identity domain. If your tenancy has additional identity domains (the norm for most tenancies today), their users are not visible here — including whether those users are enabled or disabled. Use [`oci_identity_domain_user`](oci_identity_domain_user.md), which queries the SCIM-based Identity Domains API, to see users (and their enabled/disabled `active` status) across all identity domains.
+
 ## Examples
 
 ### Basic info
