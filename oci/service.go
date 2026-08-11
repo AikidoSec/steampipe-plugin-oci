@@ -458,7 +458,6 @@ func identityDomainsService(ctx context.Context, d *plugin.QueryData, domainUrl 
 		return cachedData.(*session), nil
 	}
 
-	// get oci config info from steampipe connection
 	ociConfig := GetConfig(d.Connection)
 
 	provider, err := getProvider(ctx, d.ConnectionManager, "", ociConfig)

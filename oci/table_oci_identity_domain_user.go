@@ -260,11 +260,7 @@ func listIdentityDomainUsers(ctx context.Context, d *plugin.QueryData, _ *plugin
 			filters = append(filters, fmt.Sprintf("active eq %t", equalQuals["active"].GetBoolValue()))
 		}
 		if len(filters) > 0 {
-			filter := filters[0]
-			for _, f := range filters[1:] {
-				filter += " and " + f
-			}
-			request.Filter = types.String(filter)
+			request.Filter = types.String(strings.Join(filters, " and "))
 		}
 
 		startIndex := 1

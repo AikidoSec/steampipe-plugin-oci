@@ -315,7 +315,6 @@ func listAllIdentityDomains(ctx context.Context, d *plugin.QueryData) ([]identit
 		return nil, err
 	}
 
-	// save domains in cache
 	d.ConnectionManager.Cache.Set(serviceCacheKey, domains)
 
 	return domains, nil
