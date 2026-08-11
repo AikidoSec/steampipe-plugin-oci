@@ -189,16 +189,17 @@ func tableIdentityDomainUser(_ context.Context) *plugin.Table {
 //// TRANSFORM FUNCTION
 
 // identityDomainUserAkas prefers the globally-unique OCID (consistent with every other table's
-// akas column) and only falls back to the domain-scoped SCIM id for the rare user that hasn't
-// been assigned an OCID yet.
+// akas column). The SCIM id is only unique within its own identity domain, so for the rare user
+// that hasn't been assigned an OCID yet, it is qualified with the domain's OCID to keep the aka
+// globally unique rather than colliding with same-numbered SCIM ids in other domains.
 func identityDomainUserAkas(_ context.Context, d *transform.TransformData) (interface{}, error) {
 	user := d.HydrateItem.(identityDomainUser)
 
 	if user.Ocid != nil {
 		return []string{*user.Ocid}, nil
 	}
-	if user.Id != nil {
-		return []string{*user.Id}, nil
+	if user.Id != nil && user.DomainId != nil {
+		return []string{fmt.Sprintf("%s/%s", *user.DomainId, *user.Id)}, nil
 	}
 	return nil, nil
 }
@@ -219,6 +220,12 @@ func listIdentityDomainUsers(ctx context.Context, d *plugin.QueryData, _ *plugin
 	domains, err := listAllIdentityDomains(ctx, d)
 	if err != nil {
 		return nil, err
+	}
+
+	// Cap the SCIM page size to the query's row limit (if any) to avoid over-fetching.
+	pageSize := 1000
+	if limit := d.QueryContext.Limit; limit != nil && *limit < int64(pageSize) {
+		pageSize = int(*limit)
 	}
 
 	for _, domain := range domains {
@@ -246,7 +253,7 @@ func listIdentityDomainUsers(ctx context.Context, d *plugin.QueryData, _ *plugin
 			// Request the full SCIM attribute set (e.g. groups, extension attributes) up
 			// front, to avoid an extra per-user hydrate call.
 			AttributeSets: []identitydomains.AttributeSetsEnum{identitydomains.AttributeSetsAll},
-			Count:         types.Int(1000),
+			Count:         types.Int(pageSize),
 			RequestMetadata: common.RequestMetadata{
 				RetryPolicy: getDefaultRetryPolicy(d.Connection),
 			},
