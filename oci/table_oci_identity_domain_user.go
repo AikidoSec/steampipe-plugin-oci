@@ -91,6 +91,12 @@ func tableIdentityDomainUser(_ context.Context) *plugin.Table {
 				Transform:   transform.FromField("DisplayName"),
 			},
 			{
+				Name:        "emails",
+				Description: "The email information for the user",
+				Type:        proto.ColumnType_JSON,
+				Transform:   transform.FromField("Emails"),
+			},
+			{
 				Name:        "name",
 				Description: "The components of the user's name (given name, family name, formatted name, etc).",
 				Type:        proto.ColumnType_JSON,
@@ -264,6 +270,7 @@ func listIdentityDomainUsers(ctx context.Context, d *plugin.QueryData, _ *plugin
 				"compartmentOcid",
 				"displayName",
 				"domainOcid",
+				"emails",
 				"externalId",
 				"groups",
 				"id",
