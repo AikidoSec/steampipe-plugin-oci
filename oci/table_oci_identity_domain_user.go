@@ -67,22 +67,16 @@ func tableIdentityDomainUser(_ context.Context) *plugin.Table {
 				Transform:   transform.FromField("Ocid"),
 			},
 			{
+				Name:        "schemas",
+				Description: "The SCIM schemas of the user.",
+				Type:        proto.ColumnType_JSON,
+				Transform:   transform.FromField("Schemas"),
+			},
+			{
 				Name:        "domain_id",
 				Description: "The OCID of the identity domain this user belongs to.",
 				Type:        proto.ColumnType_STRING,
-				Transform:   transform.FromField("DomainId"),
-			},
-			{
-				Name:        "domain_display_name",
-				Description: "The display name of the identity domain this user belongs to.",
-				Type:        proto.ColumnType_STRING,
-				Transform:   transform.FromField("DomainDisplayName"),
-			},
-			{
-				Name:        "domain_url",
-				Description: "The region-agnostic URL of the identity domain this user belongs to.",
-				Type:        proto.ColumnType_STRING,
-				Transform:   transform.FromField("DomainUrl"),
+				Transform:   transform.FromField("DomainOcid"),
 			},
 			{
 				Name:        "active",
@@ -103,12 +97,6 @@ func tableIdentityDomainUser(_ context.Context) *plugin.Table {
 				Transform:   transform.FromField("Name"),
 			},
 			{
-				Name:        "emails",
-				Description: "The email addresses assigned to the user.",
-				Type:        proto.ColumnType_JSON,
-				Transform:   transform.FromField("Emails"),
-			},
-			{
 				Name:        "user_type",
 				Description: "Used to identify the relationship between the user and the identity domain, for example 'internal' or 'external'.",
 				Type:        proto.ColumnType_STRING,
@@ -121,40 +109,10 @@ func tableIdentityDomainUser(_ context.Context) *plugin.Table {
 				Transform:   transform.FromField("ExternalId"),
 			},
 			{
-				Name:        "is_locked",
-				Description: "Indicates whether the user's account is locked, for example after too many failed login attempts.",
-				Type:        proto.ColumnType_BOOL,
-				Transform:   transform.FromField("UrnIetfParamsScimSchemasOracleIdcsExtensionUserStateUser.Locked.On"),
-			},
-			{
-				Name:        "last_successful_login_date",
-				Description: "Date and time the user last successfully logged in.",
-				Type:        proto.ColumnType_STRING,
-				Transform:   transform.FromField("UrnIetfParamsScimSchemasOracleIdcsExtensionUserStateUser.LastSuccessfulLoginDate"),
-			},
-			{
-				Name:        "last_failed_login_date",
-				Description: "Date and time of the user's last failed login attempt.",
-				Type:        proto.ColumnType_STRING,
-				Transform:   transform.FromField("UrnIetfParamsScimSchemasOracleIdcsExtensionUserStateUser.LastFailedLoginDate"),
-			},
-			{
-				Name:        "login_attempts",
-				Description: "The number of consecutive failed login attempts recorded for the user.",
-				Type:        proto.ColumnType_INT,
-				Transform:   transform.FromField("UrnIetfParamsScimSchemasOracleIdcsExtensionUserStateUser.LoginAttempts"),
-			},
-			{
-				Name:        "time_created",
-				Description: "Date and time the user was created.",
-				Type:        proto.ColumnType_STRING,
-				Transform:   transform.FromField("Meta.Created"),
-			},
-			{
-				Name:        "time_last_modified",
-				Description: "Date and time the user was last modified.",
-				Type:        proto.ColumnType_STRING,
-				Transform:   transform.FromField("Meta.LastModified"),
+				Name:        "meta",
+				Description: "Metadata about the user object.",
+				Type:        proto.ColumnType_JSON,
+				Transform:   transform.FromField("Meta"),
 			},
 			{
 				Name:        "groups",
@@ -163,13 +121,55 @@ func tableIdentityDomainUser(_ context.Context) *plugin.Table {
 				Transform:   transform.FromField("Groups"),
 			},
 			{
+				Name:        "urn_user",
+				Description: "Additional identity domain-specific attributes for the user, for example federation/delegation state, group sync settings, and (where available) app grants and role assignments.",
+				Type:        proto.ColumnType_JSON,
+				Transform:   transform.FromField("UrnIetfParamsScimSchemasOracleIdcsExtensionUserUser"),
+			},
+			{
+				Name:        "urn_state_user",
+				Description: "The user's account state within the identity domain, for example lockout status, login/recovery attempt counters, and the maximum number of concurrent sessions allowed.",
+				Type:        proto.ColumnType_JSON,
+				Transform:   transform.FromField("UrnIetfParamsScimSchemasOracleIdcsExtensionUserStateUser"),
+			},
+			{
+				Name:        "urn_password_state",
+				Description: "The state of the user's password within the identity domain, for example whether it is expired or must be changed at next login.",
+				Type:        proto.ColumnType_JSON,
+				Transform:   transform.FromField("UrnIetfParamsScimSchemasOracleIdcsExtensionPasswordStateUser"),
+			},
+			{
+				Name:        "urn_adaptive_user",
+				Description: "The user's adaptive risk assessment within the identity domain, based on sign-in behavior analysis.",
+				Type:        proto.ColumnType_JSON,
+				Transform:   transform.FromField("UrnIetfParamsScimSchemasOracleIdcsExtensionAdaptiveUser"),
+			},
+			{
 				Name:        "urn_capabilities",
-				Description: "The user's capabilities within the identity domain, for example whether they can use API keys, auth tokens, or console passwords.",
+				Description: "The user's capabilities within the identity domain, for example whether they can use API keys, auth tokens, SMTP/database credentials, or a console password.",
 				Type:        proto.ColumnType_JSON,
 				Transform:   transform.FromField("UrnIetfParamsScimSchemasOracleIdcsExtensionCapabilitiesUser"),
 			},
+			{
+				Name:        "urn_mfa",
+				Description: "The user's Multi-Factor Authentication (MFA) enrollment and configuration within the identity domain.",
+				Type:        proto.ColumnType_JSON,
+				Transform:   transform.FromField("UrnIetfParamsScimSchemasOracleIdcsExtensionMfaUser"),
+			},
+			{
+				Name:        "urn_oci_tags",
+				Description: "The OCI freeform tags on the user.",
+				Type:        proto.ColumnType_JSON,
+				Transform:   transform.FromField("UrnIetfParamsScimSchemasOracleIdcsExtensionOciTags"),
+			},
 
 			// Standard Steampipe columns
+			{
+				Name:        "tags",
+				Description: ColumnDescriptionTags,
+				Type:        proto.ColumnType_JSON,
+				Transform:   transform.FromField("Tags"),
+			},
 			{
 				Name:        "akas",
 				Description: ColumnDescriptionAkas,
@@ -181,6 +181,14 @@ func tableIdentityDomainUser(_ context.Context) *plugin.Table {
 				Description: ColumnDescriptionTitle,
 				Type:        proto.ColumnType_STRING,
 				Transform:   transform.FromField("UserName"),
+			},
+
+			// Standard OCI columns
+			{
+				Name:        "tenant_id",
+				Description: ColumnDescriptionTenantId,
+				Type:        proto.ColumnType_STRING,
+				Transform:   transform.FromField("CompartmentOcid"),
 			},
 		}),
 	}
@@ -250,10 +258,32 @@ func listIdentityDomainUsers(ctx context.Context, d *plugin.QueryData, _ *plugin
 		}
 
 		request := identitydomains.ListUsersRequest{
-			// Request the full SCIM attribute set (e.g. groups, extension attributes) up
-			// front, to avoid an extra per-user hydrate call.
-			AttributeSets: []identitydomains.AttributeSetsEnum{identitydomains.AttributeSetsAll},
-			Count:         types.Int(pageSize),
+			AttributeSets: []identitydomains.AttributeSetsEnum{identitydomains.AttributeSetsRequest, identitydomains.AttributeSetsAlways, identitydomains.AttributeSetsDefault},
+			Attributes: types.String(strings.Join([]string{
+				"active",
+				"compartmentOcid",
+				"displayName",
+				"domainOcid",
+				"externalId",
+				"groups",
+				"id",
+				"meta",
+				"name",
+				"ocid",
+				"schemas",
+				"tags",
+				"urn:ietf:params:scim:schemas:oracle:idcs:extension:adaptive:User",
+				"urn:ietf:params:scim:schemas:oracle:idcs:extension:passwordState:User",
+				"urn:ietf:params:scim:schemas:oracle:idcs:extension:userState:User",
+				"urn:ietf:params:scim:schemas:oracle:idcs:extension:mfa:User",
+				"urn:ietf:params:scim:schemas:oracle:idcs:extension:capabilities:User",
+				"urn:ietf:params:scim:schemas:oracle:idcs:extension:user:User",
+				"urn:ietf:params:scim:schemas:oracle:idcs:extension:userCredentials:User",
+				"urn:ietf:params:scim:schemas:oracle:idcs:extension:OCITags",
+				"userName",
+				"userType",
+			}, ",")),
+			Count: types.Int(pageSize),
 			RequestMetadata: common.RequestMetadata{
 				RetryPolicy: getDefaultRetryPolicy(d.Connection),
 			},
